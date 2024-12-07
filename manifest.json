@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Simple Ad Blocker",
+  "version": "1.0",
+  "description": "A basic ad blocker for Chrome.",
+  "permissions": ["declarativeNetRequest"],
+  "host_permissions": ["*://*/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "icons": {
+    "16": "image.png",
+    "48": "image.png",
+    "128": "image.png"
+  }
+}
+
+    
+  
