@@ -1,8 +1,15 @@
 const adSelectors = [
   "iframe[src*='ads']",
-  "div[class*='ad']",
+  "iframe[src*='adservice']",
+  "div[id*='ad-']",
+  "div[class*='-ad']",
+  "div[class*='ad-']",
+  "div[class*='adwrapper']",
+  "div[class*='adsbygoogle']",
   "span[class*='ad']",
-  "img[src*='ad']"
+  "section[class*='ad']",
+  "img[src*='ad']",
+  "ins[class*='adsbygoogle']"
 ];
 
 function removeAds() {
@@ -11,6 +18,16 @@ function removeAds() {
   });
 }
 
-const observer = new MutationObserver(() => removeAds());
-observer.observe(document.body, { childList: true, subtree: true });
-removeAds();
+function bootObserver() {
+  if (!document.body) {
+    document.addEventListener("DOMContentLoaded", bootObserver, { once: true });
+    return;
+  }
+
+  removeAds();
+
+  const observer = new MutationObserver(() => removeAds());
+  observer.observe(document.body, { childList: true, subtree: true });
+}
+
+bootObserver();
