@@ -6,7 +6,9 @@
   "permissions": ["declarativeNetRequest"],
   "host_permissions": ["*://*/*"],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "scripts": ["blocklist.js", "background.js"],
+    "persistent": true
   },
   "content_scripts": [
     {
