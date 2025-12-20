@@ -1,3 +1,4 @@
+## Ad-Blocker -- F ads, We up
 A simple ad blocker extension for Chrome and Firefox.
 
 Chrome / Edge (Manifest V3)
