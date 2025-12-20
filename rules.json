@@ -1,25 +1,82 @@
-[
-    {
-      "id": 1,
-      "priority": 1,
-      "action": {
-        "type": "block"
-      },
-      "condition": {
-        "urlFilter": "doubleclick.net",
-        "resourceTypes": ["script", "image", "sub_frame"]
-      }
-    },
-    {
-      "id": 2,
-      "priority": 1,
-      "action": {
-        "type": "block"
-      },
-      "condition": {
-        "urlFilter": "adsense.com",
-        "resourceTypes": ["script", "image", "sub_frame"]
-      }
-    }
-  ]
+[{
+  "id": 1,
+  "priority": 1,
+  "action": { "type": "block" },
+  "condition": {
+    "urlFilter": "doubleclick.net",
+    "resourceTypes": ["script", "image", "sub_frame", "xmlhttprequest"]
+  }
+}, {
+  "id": 2,
+  "priority": 1,
+  "action": { "type": "block" },
+  "condition": {
+    "urlFilter": "adsense.com",
+    "resourceTypes": ["script", "image", "sub_frame", "xmlhttprequest"]
+  }
+}, {
+  "id": 3,
+  "priority": 1,
+  "action": { "type": "block" },
+  "condition": {
+    "urlFilter": "googlesyndication.com",
+    "resourceTypes": ["script", "image", "sub_frame", "xmlhttprequest"]
+  }
+}, {
+  "id": 4,
+  "priority": 1,
+  "action": { "type": "block" },
+  "condition": {
+    "urlFilter": "googleadservices.com",
+    "resourceTypes": ["script", "image", "sub_frame", "xmlhttprequest"]
+  }
+}, {
+  "id": 5,
+  "priority": 1,
+  "action": { "type": "block" },
+  "condition": {
+    "urlFilter": "g.doubleclick.net",
+    "resourceTypes": ["script", "image", "sub_frame", "xmlhttprequest"]
+  }
+}, {
+  "id": 6,
+  "priority": 1,
+  "action": { "type": "block" },
+  "condition": {
+    "urlFilter": "youtube.com/api/stats/ads",
+    "resourceTypes": ["xmlhttprequest", "script"]
+  }
+}, {
+  "id": 7,
+  "priority": 1,
+  "action": { "type": "block" },
+  "condition": {
+    "urlFilter": "youtube.com/get_midroll_info",
+    "resourceTypes": ["xmlhttprequest", "script"]
+  }
+}, {
+  "id": 8,
+  "priority": 1,
+  "action": { "type": "block" },
+  "condition": {
+    "urlFilter": "adformat=",
+    "resourceTypes": ["media", "xmlhttprequest"]
+  }
+}, {
+  "id": 9,
+  "priority": 1,
+  "action": { "type": "block" },
+  "condition": {
+    "urlFilter": "taboola.com",
+    "resourceTypes": ["script", "image", "xmlhttprequest", "sub_frame"]
+  }
+}, {
+  "id": 10,
+  "priority": 1,
+  "action": { "type": "block" },
+  "condition": {
+    "urlFilter": "outbrain.com",
+    "resourceTypes": ["script", "image", "xmlhttprequest", "sub_frame"]
+  }
+}]
   

@@ -1,4 +1,7 @@
-importScripts("blocklist.js");
+// Check if importScripts is defined (Service Worker context)
+if (typeof importScripts === "function") {
+  importScripts("blocklist.js");
+}
 
 const BASE_DYNAMIC_RULE_ID = 1000;
 const RESOURCE_TYPES_TO_BLOCK = [
@@ -15,6 +18,9 @@ const RESOURCE_TYPES_TO_BLOCK = [
   "other"
 ];
 
+const supportsDNR = !!(chrome.declarativeNetRequest && chrome.declarativeNetRequest.updateDynamicRules);
+const supportsWebRequestBlocking = !!(chrome.webRequest && chrome.webRequest.onBeforeRequest && chrome.webRequest.onBeforeRequest.addListener);
+
 /**
  * Convert a blocklist entry like *://*.example.com/* to a simple domain matcher.
  * Using urlFilter keeps things fast and works for both first and third-party requests.
@@ -24,11 +30,13 @@ function deriveUrlFilter(pattern) {
     return "";
   }
 
-  // Strip scheme wildcard and any leading wildcard subdomain.
-  const withoutScheme = pattern.replace(/^\*:\/\//, "").replace(/^\*\./, "");
-  const slashIndex = withoutScheme.indexOf("/");
-  const hostPortion = slashIndex === -1 ? withoutScheme : withoutScheme.slice(0, slashIndex);
-  return hostPortion.replace(/\*/g, "").trim();
+  // Keep paths when present (for granular matches like YouTube ad endpoints).
+  const withoutScheme = pattern.replace(/^\*:\/\//, "");
+  const withoutWildcardSubdomain = withoutScheme.startsWith("*.")
+    ? withoutScheme.slice(2)
+    : withoutScheme;
+
+  return withoutWildcardSubdomain.replace(/\*/g, "").trim();
 }
 
 function buildDynamicRules() {
@@ -62,6 +70,10 @@ function buildDynamicRules() {
 }
 
 function refreshDynamicRules() {
+  if (!supportsDNR) {
+    return;
+  }
+
   const newRules = buildDynamicRules();
   const maxRuleId = BASE_DYNAMIC_RULE_ID + newRules.length + 1000;
 
@@ -88,13 +100,40 @@ function refreshDynamicRules() {
 }
 
 // Refresh rules when the extension is installed or Chrome is starting up.
+function legacyBlockListener(details) {
+  return { cancel: true };
+}
+
+function enableLegacyWebRequestBlocking() {
+  if (!supportsWebRequestBlocking || !Array.isArray(blocklist) || blocklist.length === 0) {
+    return;
+  }
+
+  try {
+    chrome.webRequest.onBeforeRequest.removeListener(legacyBlockListener);
+  } catch (err) {
+    // No-op; listener may not have been registered yet.
+  }
+
+  chrome.webRequest.onBeforeRequest.addListener(legacyBlockListener, { urls: blocklist }, ["blocking"]);
+  console.log(`Legacy webRequest blocking enabled for ${blocklist.length} patterns.`);
+}
+
+function initializeBlocking() {
+  if (supportsDNR) {
+    refreshDynamicRules();
+  } else {
+    enableLegacyWebRequestBlocking();
+  }
+}
+
 chrome.runtime.onInstalled.addListener(() => {
-  console.log("Ad blocker extension installed and refreshing dynamic rules.");
-  refreshDynamicRules();
+  console.log("Ad blocker extension installed; initializing blocking.");
+  initializeBlocking();
 });
 
 chrome.runtime.onStartup.addListener(() => {
-  refreshDynamicRules();
+  initializeBlocking();
 });
 
 // Listener for any runtime messages (optional, for future use)
