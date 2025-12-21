@@ -30,6 +30,16 @@ const youtubeSelectors = [
   ".ytp-ad-text-overlay"
 ];
 
+// Performance notes:
+// Fullscreen / theater mode transitions can cause large bursts of DOM mutations on video sites.
+// Avoid scanning the entire document on every mutation; debounce and run heavy work during idle time.
+
+const CLEANUP_DEBOUNCE_MS = 200;
+const MIN_DOCUMENT_SCAN_INTERVAL_MS = 2000;
+const FULLSCREEN_TRANSITION_PAUSE_MS = 900;
+const MAX_PENDING_ROOTS_PER_FLUSH = 30;
+const MAX_ELEMENTS_TO_SCAN_PER_ROOT = 1200;
+
 function removeNode(node) {
   if (!node || node.nodeType !== Node.ELEMENT_NODE) {
     return;
@@ -86,17 +96,38 @@ function isLikelyAdElement(element) {
   return true;
 }
 
-function removeLikelyAdsInRoot(root) {
+function removeStrictAdsInRoot(root) {
   if (!root || root.nodeType !== Node.ELEMENT_NODE) {
     return;
   }
 
   // Fast path: strict selectors.
   removeMatches(strictAdSelectors, root);
+}
+
+function removeHeuristicAdsInRoot(root) {
+  if (!root || root.nodeType !== Node.ELEMENT_NODE) {
+    return;
+  }
 
   // Conservative scan for likely ad placeholders.
-  const candidates = root.querySelectorAll("ins, iframe, div, aside, section");
-  for (const el of candidates) {
+  // Use a TreeWalker with a hard cap to avoid long main-thread stalls.
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+  let scanned = 0;
+
+  while (walker.nextNode()) {
+    scanned++;
+    if (scanned > MAX_ELEMENTS_TO_SCAN_PER_ROOT) {
+      return;
+    }
+
+    const el = walker.currentNode;
+    // Limit to common ad container types.
+    const tag = el.tagName;
+    if (tag !== "INS" && tag !== "IFRAME" && tag !== "DIV" && tag !== "ASIDE" && tag !== "SECTION") {
+      continue;
+    }
+
     if (isLikelyAdElement(el)) {
       removeNode(el);
     }
@@ -111,17 +142,84 @@ function skipYouTubeAds() {
   removeMatches(youtubeSelectors);
 }
 
-let scheduled = false;
-function scheduleCleanup() {
-  if (scheduled) {
+let cleanupTimerId = null;
+let lastDocumentScanAt = 0;
+let pausedUntil = 0;
+const pendingRoots = new Set();
+
+function nowMs() {
+  return typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
+}
+
+function runInIdle(callback) {
+  if (typeof requestIdleCallback === "function") {
+    requestIdleCallback(
+      () => {
+        try {
+          callback();
+        } catch (err) {
+          // Ignore content-script errors to avoid breaking page interactions.
+        }
+      },
+      { timeout: 700 }
+    );
     return;
   }
-  scheduled = true;
-  queueMicrotask(() => {
-    scheduled = false;
-    removeLikelyAdsInRoot(document);
+
+  setTimeout(() => {
+    try {
+      callback();
+    } catch (err) {
+      // Ignore.
+    }
+  }, 0);
+}
+
+function flushCleanup() {
+  const t = nowMs();
+  if (t < pausedUntil) {
+    // Fullscreen/theater transition in progress; try again shortly.
+    scheduleCleanup();
+    return;
+  }
+
+  // Process a bounded number of mutated subtrees.
+  let processed = 0;
+  for (const root of pendingRoots) {
+    pendingRoots.delete(root);
+    if (!root || root.nodeType !== Node.ELEMENT_NODE) {
+      continue;
+    }
+
+    removeStrictAdsInRoot(root);
+    removeMatches(youtubeSelectors, root);
+    removeHeuristicAdsInRoot(root);
+
+    processed++;
+    if (processed >= MAX_PENDING_ROOTS_PER_FLUSH) {
+      break;
+    }
+  }
+
+  // Run a lightweight document-wide sweep at a limited rate.
+  if (t - lastDocumentScanAt >= MIN_DOCUMENT_SCAN_INTERVAL_MS) {
+    lastDocumentScanAt = t;
+    // Avoid heuristic scanning on the full document; it can be huge on video sites.
+    removeStrictAdsInRoot(document.documentElement);
+    removeMatches(youtubeSelectors);
     skipYouTubeAds();
-  });
+  }
+}
+
+function scheduleCleanup() {
+  if (cleanupTimerId !== null) {
+    return;
+  }
+
+  cleanupTimerId = setTimeout(() => {
+    cleanupTimerId = null;
+    runInIdle(flushCleanup);
+  }, CLEANUP_DEBOUNCE_MS);
 }
 
 function bootObserver() {
@@ -130,19 +228,28 @@ function bootObserver() {
     return;
   }
 
+  // Initial sweep (debounced + idle).
   scheduleCleanup();
 
+  const pauseForTransition = () => {
+    pausedUntil = Math.max(pausedUntil, nowMs() + FULLSCREEN_TRANSITION_PAUSE_MS);
+    scheduleCleanup();
+  };
+
+  // Fullscreen/theater toggles and resizes often produce mutation bursts.
+  document.addEventListener("fullscreenchange", pauseForTransition, { passive: true });
+  window.addEventListener("resize", pauseForTransition, { passive: true });
+
   const observer = new MutationObserver((mutations) => {
-    // Only react to newly added nodes; keeps us from repeatedly scanning the whole DOM.
+    // Only react to newly added nodes; keep per-mutation work tiny.
     for (const mutation of mutations) {
       for (const node of mutation.addedNodes) {
         if (node && node.nodeType === Node.ELEMENT_NODE) {
-          removeLikelyAdsInRoot(node);
+          pendingRoots.add(node);
         }
       }
     }
 
-    // Also handle YouTube overlays/skip buttons.
     scheduleCleanup();
   });
   observer.observe(document.body, { childList: true, subtree: true });
