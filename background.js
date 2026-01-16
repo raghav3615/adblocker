@@ -21,10 +21,6 @@ const RESOURCE_TYPES_TO_BLOCK = [
 const supportsDNR = !!(chrome.declarativeNetRequest && chrome.declarativeNetRequest.updateDynamicRules);
 const supportsWebRequestBlocking = !!(chrome.webRequest && chrome.webRequest.onBeforeRequest && chrome.webRequest.onBeforeRequest.addListener);
 
-/**
- * Convert a blocklist entry like *://*.example.com/* to a simple domain matcher.
- * Using urlFilter keeps things fast and works for both first and third-party requests.
- */
 function deriveUrlFilter(pattern) {
   if (!pattern || typeof pattern !== "string") {
     return "";

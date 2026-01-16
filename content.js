@@ -24,7 +24,8 @@ const youtubeSelectors = [
   "ytd-promoted-video-renderer",
   "ytd-ad-slot-renderer",
   ".ytd-video-masthead-ad-advertiser-info-renderer",
-  ".ytp-ad-module",
+  // Avoid removing .ytp-ad-module as it can break the player state.
+  // We'll handle its children or specific ad overlays instead.
   ".ytp-ad-overlay-slot",
   ".ytp-ad-image-overlay",
   ".ytp-ad-text-overlay"
@@ -65,6 +66,16 @@ function hasAdToken(value) {
 function isLikelyAdElement(element) {
   const id = element.id || "";
   const className = element.className || "";
+
+  // Never remove video players or containers that host a video element.
+  // This prevents breaking playback when players use classes like "ad-showing".
+  if (
+    element.tagName === "VIDEO" ||
+    element.querySelector("video") ||
+    element.closest(".html5-video-player, .ytp-player, .video-player")
+  ) {
+    return false;
+  }
 
   if (element.matches("ins.adsbygoogle, div.adsbygoogle")) {
     return true;
@@ -138,7 +149,13 @@ function skipYouTubeAds() {
   const skipButtons = document.querySelectorAll(
     ".ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-ad-overlay-close-button"
   );
-  skipButtons.forEach((btn) => btn.click());
+  skipButtons.forEach((btn) => {
+    // Ensure we actually click strictly
+    if (typeof btn.click === "function") {
+      btn.click();
+    }
+  });
+  // Remove banner ads without breaking the module
   removeMatches(youtubeSelectors);
 }
 
@@ -224,6 +241,10 @@ function scheduleCleanup() {
 
 function bootObserver() {
   if (!document.body) {
+
+  // Add a specific frequent interval for video ad skipping 
+  // because relying solely on mutations can be too slow for visible ads.
+  setInterval(skipYouTubeAds, 500);
     document.addEventListener("DOMContentLoaded", bootObserver, { once: true });
     return;
   }
@@ -253,6 +274,9 @@ function bootObserver() {
     scheduleCleanup();
   });
   observer.observe(document.body, { childList: true, subtree: true });
+
+  // Check for video ads frequently
+  setInterval(skipYouTubeAds, 500);
 }
 
 bootObserver();

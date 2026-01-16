@@ -1,14 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "Ad-Blocker by Ragzus",
+  "name": "Ad-Blocker by Raghav",
   "version": "1.1",
   "description": "Blocks common web, video, and popup ad sources.",
   "permissions": ["declarativeNetRequest"],
   "host_permissions": ["*://*/*"],
   "background": {
-    "service_worker": "background.js",
-    "scripts": ["blocklist.js", "background.js"],
-    "persistent": true
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
