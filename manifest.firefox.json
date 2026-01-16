@@ -12,8 +12,13 @@
   "permissions": [
     "webRequest",
     "webRequestBlocking",
+    "storage",
     "<all_urls>"
   ],
+  "browser_action": {
+    "default_title": "Ad Blocker",
+    "default_popup": "popup.html"
+  },
   "background": {
     "scripts": ["blocklist.js", "background.js"],
     "persistent": true

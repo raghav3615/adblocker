@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ad Blocker</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="card">
+      <div class="header">
+        <div class="title">Ad Blocker</div>
+        <div class="status" id="status">Active</div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="label">Total blocked</div>
+          <div class="value" id="totalBlocked">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Session blocked</div>
+          <div class="value" id="sessionBlocked">0</div>
+        </div>
+        <div class="stat wide">
+          <div class="label">Last blocked</div>
+          <div class="value" id="lastBlocked">—</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Top domains</div>
+        <div class="list" id="domainList">
+          <div class="list-empty">No data yet.</div>
+        </div>
+      </div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
