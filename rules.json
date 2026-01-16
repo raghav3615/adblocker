@@ -78,5 +78,53 @@
     "urlFilter": "outbrain.com",
     "resourceTypes": ["script", "image", "xmlhttprequest", "sub_frame"]
   }
+}, {
+  "id": 11,
+  "priority": 1,
+  "action": { "type": "block" },
+  "condition": {
+    "urlFilter": "youtube.com/pagead/",
+    "resourceTypes": ["script", "image", "xmlhttprequest", "sub_frame"]
+  }
+}, {
+  "id": 12,
+  "priority": 1,
+  "action": { "type": "block" },
+  "condition": {
+    "urlFilter": "youtube.com/ptracking",
+    "resourceTypes": ["xmlhttprequest", "script"]
+  }
+}, {
+  "id": 14,
+  "priority": 1,
+  "action": { "type": "block" },
+  "condition": {
+    "urlFilter": "ad_break=",
+    "resourceTypes": ["xmlhttprequest", "media"]
+  }
+}, {
+  "id": 15,
+  "priority": 1,
+  "action": { "type": "block" },
+  "condition": {
+    "urlFilter": "ctier=",
+    "resourceTypes": ["xmlhttprequest", "media"]
+  }
+}, {
+  "id": 16,
+  "priority": 1,
+  "action": { "type": "block" },
+  "condition": {
+    "urlFilter": "oad=",
+    "resourceTypes": ["xmlhttprequest", "media"]
+  }
+}, {
+  "id": 17,
+  "priority": 1,
+  "action": { "type": "block" },
+  "condition": {
+    "regexFilter": "googlevideo\\.com/videoplayback.*(adformat=|ad_break=|oad=|ctier=)",
+    "resourceTypes": ["media"]
+  }
 }]
   

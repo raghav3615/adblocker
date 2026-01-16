@@ -31,6 +31,85 @@ const youtubeSelectors = [
   ".ytp-ad-text-overlay"
 ];
 
+const YT_AD_CHECK_INTERVAL_MS = 500;
+let lastPlaybackRate = null;
+let lastMutedState = null;
+
+function getYouTubePlayer() {
+  return document.querySelector(".html5-video-player");
+}
+
+function isYouTubeAdShowing(player) {
+  if (!player) {
+    return false;
+  }
+
+  return (
+    player.classList.contains("ad-showing") ||
+    player.classList.contains("ad-interrupting") ||
+    player.classList.contains("ad-preview")
+  );
+}
+
+function trySkipYouTubeAdViaPlayerApi(player) {
+  if (!player) {
+    return;
+  }
+
+  const moviePlayer = document.getElementById("movie_player") || player;
+  if (moviePlayer && typeof moviePlayer.skipAd === "function") {
+    moviePlayer.skipAd();
+  }
+}
+
+function accelerateAdPlayback(player) {
+  const video = player ? player.querySelector("video") : null;
+  if (!video) {
+    return;
+  }
+
+  if (lastPlaybackRate === null) {
+    lastPlaybackRate = video.playbackRate;
+  }
+
+  if (lastMutedState === null) {
+    lastMutedState = video.muted;
+  }
+
+  if (video.playbackRate < 4) {
+    video.playbackRate = 4;
+  }
+
+  if (!video.muted) {
+    video.muted = true;
+  }
+
+  if (Number.isFinite(video.duration) && video.duration > 0) {
+    try {
+      video.currentTime = video.duration;
+    } catch (err) {
+      // Ignore seek errors.
+    }
+  }
+}
+
+function restoreYouTubePlayback(player) {
+  const video = player ? player.querySelector("video") : null;
+  if (!video) {
+    return;
+  }
+
+  if (lastPlaybackRate !== null) {
+    video.playbackRate = lastPlaybackRate;
+    lastPlaybackRate = null;
+  }
+
+  if (lastMutedState !== null) {
+    video.muted = lastMutedState;
+    lastMutedState = null;
+  }
+}
+
 // Performance notes:
 // Fullscreen / theater mode transitions can cause large bursts of DOM mutations on video sites.
 // Avoid scanning the entire document on every mutation; debounce and run heavy work during idle time.
@@ -150,13 +229,21 @@ function skipYouTubeAds() {
     ".ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-ad-overlay-close-button"
   );
   skipButtons.forEach((btn) => {
-    // Ensure we actually click strictly
     if (typeof btn.click === "function") {
       btn.click();
     }
   });
-  // Remove banner ads without breaking the module
+
+  // Remove banner ads without breaking the module.
   removeMatches(youtubeSelectors);
+
+  const player = getYouTubePlayer();
+  if (isYouTubeAdShowing(player)) {
+    trySkipYouTubeAdViaPlayerApi(player);
+    accelerateAdPlayback(player);
+  } else {
+    restoreYouTubePlayback(player);
+  }
 }
 
 let cleanupTimerId = null;
@@ -241,10 +328,6 @@ function scheduleCleanup() {
 
 function bootObserver() {
   if (!document.body) {
-
-  // Add a specific frequent interval for video ad skipping 
-  // because relying solely on mutations can be too slow for visible ads.
-  setInterval(skipYouTubeAds, 500);
     document.addEventListener("DOMContentLoaded", bootObserver, { once: true });
     return;
   }
@@ -276,7 +359,7 @@ function bootObserver() {
   observer.observe(document.body, { childList: true, subtree: true });
 
   // Check for video ads frequently
-  setInterval(skipYouTubeAds, 500);
+  setInterval(skipYouTubeAds, YT_AD_CHECK_INTERVAL_MS);
 }
 
 bootObserver();

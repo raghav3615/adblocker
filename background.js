@@ -83,7 +83,8 @@ function deriveUrlFilter(pattern) {
     ? withoutScheme.slice(2)
     : withoutScheme;
 
-  return withoutWildcardSubdomain.replace(/\*/g, "").trim();
+  // Preserve wildcards for DNR urlFilter matching.
+  return withoutWildcardSubdomain.trim();
 }
 
 function buildDynamicRules() {
